@@ -103,6 +103,14 @@ ${JSON.stringify(articlesByTicker, null, 2)}
 
 Return ONLY valid JSON in exactly this shape:
 {
+  "overview": {
+    "sentiment": "positive | negative | neutral | mixed",
+    "headline": "one sentence overall portfolio read",
+    "summary": "2-3 sentence overview across all holdings",
+    "positiveTickers": [],
+    "negativeTickers": [],
+    "neutralTickers": []
+  },
   "briefs": [
     {
       "ticker": "ASML",
@@ -111,10 +119,10 @@ Return ONLY valid JSON in exactly this shape:
       "takeaway": "one plain sentence on what matters most",
       "items": [
         {
-          "title": "...",
-          "source": "...",
+          "title": "exact article title from provided articles",
+          "source": "source from provided articles",
           "date": "YYYY-MM-DD",
-          "url": "https://...",
+          "url": "exact URL from provided articles",
           "summary": "1-2 sentence plain summary"
         }
       ]
@@ -124,10 +132,13 @@ Return ONLY valid JSON in exactly this shape:
 
 Rules:
 - Include every holding.
-- Use only the articles provided.
-- Do not invent facts.
-- Up to 4 items per ticker.
-- If there is no relevant news, use "items": [] and say so in the takeaway.
+- Preserve company-level "items" arrays.
+- Each company may include up to 4 article items.
+- Do not remove article citations just because overview exists.
+- Use only articles provided above.
+- Do not invent URLs.
+- If no relevant news for a holding, use "items": [] and explain in the takeaway.
+- The overview should summarize across the company briefs, not replace them.
 - Do not give investment advice.
 - No markdown.
 - No prose outside JSON.

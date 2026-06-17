@@ -28,6 +28,9 @@ const LOADING_MESSAGES = [
   "FLOCK OFF!!! SEE YA!!!",
   "Now wait a second... BE PATIENT!!!",
   "EAT THE RICH actually no eat MY ASS...",
+  "Working on it...SO GET THAT SHIT ON TOP OF ME!!",
+  "I want it FAST FAST FAST, FAST FAST FAST",
+  "I WANT MOREEEE MOREEE MOREEEE!!!!!"
 ];
 
 export default function Home() {
@@ -37,6 +40,11 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [asOf, setAsOf] = useState(null);
   const [draft, setDraft] = useState("");
+
+  const [overview, setOverview] = useState(null);
+  const [showOverview, setShowOverview] = useState(true);
+  const [showDetails, setShowDetails] = useState(true);
+
   const progressTimer = useRef(null);
 
   useEffect(() => {
@@ -50,27 +58,27 @@ export default function Home() {
 
     progressTimer.current = setInterval(() => {
       setResults((prev) => {
-        const next = { ...prev };
+        const nextResults = { ...prev };
 
-        for (const ticker of Object.keys(next)) {
-          if (next[ticker].status === "loading") {
-            const current = next[ticker].progress || 0;
+        for (const ticker of Object.keys(nextResults)) {
+          if (nextResults[ticker].status === "loading") {
+            const current = nextResults[ticker].progress || 0;
             const bump = Math.floor(Math.random() * 9) + 3;
             const progress = Math.min(current + bump, 95);
 
-            next[ticker] = {
-              ...next[ticker],
+            nextResults[ticker] = {
+              ...nextResults[ticker],
               progress,
               messageIndex:
                 Math.random() > 0.72
-                  ? ((next[ticker].messageIndex || 0) + 1) %
+                  ? ((nextResults[ticker].messageIndex || 0) + 1) %
                     LOADING_MESSAGES.length
-                  : next[ticker].messageIndex || 0,
+                  : nextResults[ticker].messageIndex || 0,
             };
           }
         }
 
-        return next;
+        return nextResults;
       });
     }, 900);
   }
@@ -79,6 +87,7 @@ export default function Home() {
     if (running) return;
 
     setRunning(true);
+    setOverview(null);
 
     const init = {};
     holdings.forEach((h, i) => {
@@ -110,9 +119,12 @@ export default function Home() {
 
       if (progressTimer.current) clearInterval(progressTimer.current);
 
-      const next = {};
+      setOverview(data.overview || null);
+
+      const nextResults = {};
+
       for (const brief of data.briefs || []) {
-        next[brief.ticker] = {
+        nextResults[brief.ticker] = {
           status: "done",
           progress: 100,
           data: brief,
@@ -120,12 +132,12 @@ export default function Home() {
       }
 
       holdings.forEach((h) => {
-        if (!next[h.ticker]) {
-          next[h.ticker] = { status: "error" };
+        if (!nextResults[h.ticker]) {
+          nextResults[h.ticker] = { status: "error" };
         }
       });
 
-      setResults(next);
+      setResults(nextResults);
       setAsOf(new Date());
     } catch {
       if (progressTimer.current) clearInterval(progressTimer.current);
@@ -134,6 +146,7 @@ export default function Home() {
       holdings.forEach((h) => {
         fail[h.ticker] = { status: "error" };
       });
+
       setResults(fail);
     }
 
@@ -142,20 +155,23 @@ export default function Home() {
 
   function addTicker() {
     const t = draft.trim().toUpperCase();
+
     if (!t || holdings.some((h) => h.ticker === t)) {
       setDraft("");
       return;
     }
+
     setHoldings((h) => [...h, { ticker: t, name: t }]);
     setDraft("");
   }
 
   function removeTicker(t) {
     setHoldings((h) => h.filter((x) => x.ticker !== t));
+
     setResults((r) => {
-      const c = { ...r };
-      delete c[t];
-      return c;
+      const copy = { ...r };
+      delete copy[t];
+      return copy;
     });
   }
 
@@ -208,6 +224,7 @@ export default function Home() {
           {holdings.map((h) => {
             const st = results[h.ticker];
             const sent = st?.data?.sentiment;
+
             const dot =
               st?.status === "loading"
                 ? "#E8B84B"
@@ -258,12 +275,66 @@ export default function Home() {
         )}
       </header>
 
-      <main className="pb-grid">
-        {holdings.map((h) => {
-          const st = results[h.ticker] || { status: "idle" };
-          return <Card key={h.ticker} holding={h} state={st} />;
-        })}
-      </main>
+      {overview && (
+        <section className="pb-overview">
+          <div className="pb-overview-top">
+            <div>
+              <div className="pb-overview-kicker">Portfolio Overview</div>
+              <div className="pb-overview-title">
+                {overview.headline || "Portfolio summary"}
+              </div>
+            </div>
+
+            <button
+              className="pb-mini-btn"
+              onClick={() => setShowOverview(!showOverview)}
+            >
+              {showOverview ? "Hide Overview" : "Show Overview"}
+            </button>
+          </div>
+
+          {showOverview && (
+            <>
+              <p className="pb-overview-summary">{overview.summary}</p>
+
+              <div className="pb-overview-groups">
+                <div>
+                  <strong>📈 Doing well</strong>
+                  <span>{overview.positiveTickers?.join(", ") || "None"}</span>
+                </div>
+
+                <div>
+                  <strong>📉 Under pressure</strong>
+                  <span>{overview.negativeTickers?.join(", ") || "None"}</span>
+                </div>
+
+                <div>
+                  <strong>🫡 Neutral</strong>
+                  <span>{overview.neutralTickers?.join(", ") || "None"}</span>
+                </div>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      <div className="pb-detail-toggle">
+        <button
+          className="pb-mini-btn"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          {showDetails ? "Hide Company Briefs" : "Show Company Briefs"}
+        </button>
+      </div>
+
+      {showDetails && (
+        <main className="pb-grid">
+          {holdings.map((h) => {
+            const st = results[h.ticker] || { status: "idle" };
+            return <Card key={h.ticker} holding={h} state={st} />;
+          })}
+        </main>
+      )}
 
       {!asOf && !running && (
         <div className="pb-empty">
@@ -396,6 +467,93 @@ const CSS = `
 .pb-add input::placeholder{color:#566072;}
 .pb-asof{margin-top:10px;font-size:12px;color:var(--mut);letter-spacing:.02em;}
 
+.pb-overview{
+  max-width:1160px;
+  margin:0 auto 16px;
+  padding:20px;
+  border-radius:14px;
+  background:var(--surface);
+  border:1px solid var(--line);
+}
+
+.pb-overview-top{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+}
+
+.pb-overview-kicker{
+  color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.18em;
+  margin-bottom:8px;
+}
+
+.pb-overview-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:24px;
+  font-weight:700;
+  line-height:1.2;
+}
+
+.pb-overview-summary{
+  color:#B7C0CC;
+  line-height:1.6;
+  margin:14px 0 16px;
+}
+
+.pb-overview-groups{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+}
+
+.pb-overview-groups div{
+  background:var(--surface2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+}
+
+.pb-overview-groups strong{
+  display:block;
+  margin-bottom:6px;
+}
+
+.pb-overview-groups span{
+  color:var(--mut);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.pb-mini-btn{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  border:1px solid var(--line);
+  background:var(--surface2);
+  color:var(--ink);
+  border-radius:999px;
+  padding:7px 12px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.pb-mini-btn:hover{
+  border-color:var(--accent);
+}
+
+.pb-detail-toggle{
+  max-width:1160px;
+  margin:0 auto 14px;
+  display:flex;
+  justify-content:flex-end;
+}
+
 .pb-grid{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
 .pb-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;min-height:150px;animation:pb-rise .35s ease both;}
 @keyframes pb-rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
@@ -481,5 +639,7 @@ const CSS = `
   .pb-grid{grid-template-columns:1fr;}
   .pb-toggle{width:100%;}
   .pb-toggle button{flex:1;}
+  .pb-overview-top{flex-direction:column;}
+  .pb-detail-toggle{justify-content:flex-start;}
 }
 `;
