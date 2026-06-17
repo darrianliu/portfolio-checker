@@ -57,9 +57,9 @@ function extractJSON(text) {
 
 export async function POST(req) {
   try {
-    const { holdings, windowKey } = await req.json();
+    const { holdings, windowKey, language = "en" } = await req.json();
 
-    const cacheKey = JSON.stringify({ holdings, windowKey });
+    const cacheKey = JSON.stringify({ holdings, windowKey, language });
     const cached = cache.get(cacheKey);
 
     const cacheMs =
@@ -89,9 +89,14 @@ export async function POST(req) {
         : windowKey === "week"
         ? "the past 7 days"
         : "the past 24 hours";
-
+    const languageInstruction =
+  language === "zh-TW"
+    ? "Write all user-facing text in natural Traditional Chinese for Taiwan. Use Traditional Chinese only. Avoid Simplified Chinese. Avoid overly formal corporate-report wording. Keep it clear, concise, and natural."
+    : "Write all user-facing text in natural English. Keep it clear, concise, and natural.";
     const prompt = `
 You are a careful financial news summarizer.
+
+${languageInstruction}
 
 Create a portfolio brief for this time window: ${windowLabel}
 

@@ -30,12 +30,20 @@ const LOADING_MESSAGES = [
   "EAT THE RICH actually no eat MY ASS...",
   "Working on it...SO GET THAT SHIT ON TOP OF ME!!",
   "I want it FAST FAST FAST, FAST FAST FAST",
-  "I WANT MOREEEE MOREEE MOREEEE!!!!!"
+  "I WANT MOREEEE MOREEE MOREEEE!!!!!",
+  "DON'T DO IT!!!! actually...",
+  "Did you shave your pussy today?",
+  "We are UNDER attack!!!!!!!",
+  "Will this pay for our Ariana Grande tour tickets?",
+  "LOVE Pink",
+  "Finally, we can stop working the piers girl..."
 ];
 
 export default function Home() {
   const [holdings, setHoldings] = useState(SEED);
   const [windowKey, setWindowKey] = useState("day");
+  const [language, setLanguage] = useState("en");
+
   const [results, setResults] = useState({});
   const [running, setRunning] = useState(false);
   const [asOf, setAsOf] = useState(null);
@@ -108,11 +116,11 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          holdings,
-          windowKey,
-        }),
-      });
-
+  holdings,
+  windowKey,
+  language,
+}),
+});
       if (!res.ok) throw new Error("brief failed");
 
       const data = await res.json();
@@ -213,6 +221,20 @@ export default function Home() {
                 This month
               </button>
             </div>
+            <div className="pb-toggle pb-lang-toggle">
+  <button
+    className={language === "en" ? "on" : ""}
+    onClick={() => setLanguage("en")}
+  >
+    EN
+  </button>
+  <button
+    className={language === "zh-TW" ? "on" : ""}
+    onClick={() => setLanguage("zh-TW")}
+  >
+    繁中
+  </button>
+</div>
 
             <button className="pb-refresh" onClick={refresh} disabled={running}>
               {running ? "Gathering…" : "Refresh brief"}
